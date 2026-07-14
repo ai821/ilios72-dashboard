@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>ILIOS 72 — My Portfolio</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0D0D0D;--card:#161616;--card2:#1E1E1E;--border:#2A2A2A;
+  --text:#F0F0F0;--dim:#A0A0A0;--muted:#666;
+  --orange:#E8731A;--orangeBg:rgba(232,115,26,0.08);
+  --green:#22C55E;--greenBg:rgba(34,197,94,0.08);
+  --red:#EF4444;--redBg:rgba(239,68,68,0.08);
+  --blue:#3B82F6;--blueBg:rgba(59,130,246,0.08);
+  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px;min-height:100vh}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+
+/* NAV */
+.nav{background:var(--card);border-bottom:1px solid var(--border);padding:14px 24px;
+  display:flex;align-items:center;justify-content:space-between}
+.nav-logo{font-size:16px;font-weight:800;letter-spacing:2px;color:var(--text)}
+.nav-logo span{color:var(--orange)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-name{font-size:12px;color:var(--dim)}
+.btn-logout{padding:6px 14px;background:transparent;border:1px solid var(--border);
+  border-radius:6px;color:var(--dim);font-size:11px;cursor:pointer;font-family:var(--font)}
+.btn-logout:hover{border-color:var(--red);color:var(--red)}
+
+/* MAIN */
+.main{max-width:1100px;margin:0 auto;padding:24px}
+
+/* WELCOME */
+.welcome{margin-bottom:24px}
+.welcome h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.welcome p{font-size:12px;color:var(--muted)}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.sec{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--orange);margin-bottom:12px}
+
+/* GRID */
+.g4{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:700px){.g2{grid-template-columns:1fr}}
+
+/* METRIC */
+.metric{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.metric .lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px}
+.metric .val{font-size:22px;font-weight:700;font-family:var(--mono)}
+.metric .sub{font-size:10px;color:var(--dim);margin-top:3px}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{padding:9px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border);background:var(--card2)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border)}
+.tbl tr:hover td{background:rgba(232,115,26,0.03)}
+.num{text-align:right;font-family:var(--mono)}
+.tg{color:var(--green)}.tr{color:var(--red)}
+
+/* BADGE */
+.badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;font-family:var(--mono);display:inline-block}
+.bg{background:var(--greenBg);color:var(--green)}
+.br{background:var(--redBg);color:var(--red)}
+.bo{background:var(--orangeBg);color:var(--orange)}
+.bb{background:var(--blueBg);color:var(--blue)}
+
+/* LOADING */
+.loading{text-align:center;padding:60px;color:var(--muted)}
+.spinner{display:inline-block;width:24px;height:24px;border:2px solid var(--border);
+  border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 20px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .2s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--orange);border-color:var(--orange);font-weight:600}
+
+.panel{display:none}.panel.active{display:block}
+
+/* FACTSHEET UPDATES */
+.fs-item{padding:14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px}
+.fs-item-name{font-weight:600;font-size:13px;margin-bottom:4px}
+.fs-item-meta{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">ILIOS <span>72</span></div>
+  <div class="nav-right">
+    <div class="nav-name" id="navName">My Portfolio</div>
+    <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+  </div>
+</nav>
+
+<div class="main">
+  <!-- Loading state -->
+  <div class="loading" id="loadingState">
+    <div class="spinner"></div>
+    <div>Loading your portfolio...</div>
+  </div>
+
+  <!-- Main content (hidden until loaded) -->
+  <div id="mainContent" style="display:none">
+    <div class="welcome">
+      <h1 id="welcomeName">Welcome back</h1>
+      <p id="welcomeSub">Here is your portfolio summary</p>
+    </div>
+
+    <!-- Key metrics -->
+    <div class="g4" id="metricsGrid"></div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="cTab(0)">📊 Portfolio</div>
+      <div class="tab" onclick="cTab(1)">📈 Performance</div>
+      <div class="tab" onclick="cTab(2)">📄 Factsheet Updates</div>
+    </div>
+
+    <!-- Portfolio tab -->
+    <div class="panel active" id="cPanel0">
+      <div class="card">
+        <div class="sec">Holdings</div>
+        <div style="overflow-x:auto">
+          <table class="tbl" id="holdingsTable">
+            <thead><tr>
+              <th>Stock</th><th>Sector</th><th class="num">Qty</th>
+              <th class="num">Avg Cost</th><th class="num">CMP</th>
+              <th class="num">Market Value</th><th class="num">Weight %</th>
+              <th class="num">P&L</th>
+            </tr></thead>
+            <tbody id="holdingsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance tab -->
+    <div class="panel" id="cPanel1">
+      <div class="g2">
+        <div class="card">
+          <div class="sec">Returns vs Benchmark</div>
+          <div id="returnsTable"></div>
+        </div>
+        <div class="card">
+          <div class="sec">PMS Details</div>
+          <div id="pmsDetails"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Factsheet updates tab -->
+    <div class="panel" id="cPanel2">
+      <div class="card">
+        <div class="sec">Latest Factsheet Updates</div>
+        <div id="factsheetList">
+          <div style="color:var(--muted);font-size:12px">No factsheet updates yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="supabase.js"></script>
+<script>
+let clientData = null;
+let holdingsData = [];
+let pmsData = null;
+let factsheets = [];
+
+// ── INIT ──────────────────────────────────────
+(async function init() {
+  const restored = await sb.restoreSession();
+  if (!restored) { window.location.href = 'index.html'; return; }
+  if (sb.isCompany()) { window.location.href = 'ILIOS72_Dashboard_MASTER.html'; return; }
+
+  const profile = sb.profile;
+  document.getElementById('navName').textContent = profile.full_name || 'My Portfolio';
+  document.getElementById('welcomeName').textContent = 'Welcome, ' + (profile.full_name?.split(' ')[0] || 'back');
+
+  try {
+    await loadClientData();
+    await loadHoldings();
+    await loadFactsheets();
+    renderAll();
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+  } catch(e) {
+    document.getElementById('loadingState').innerHTML =
+      '<div style="color:var(--red)">Error loading portfolio: '+e.message+'</div>';
+  }
+})();
+
+async function loadClientData() {
+  const profile = sb.profile;
+  if (!profile.client_id) {
+    document.getElementById('welcomeSub').textContent = 'Your account is being set up. Please contact your advisor.';
+    return;
+  }
+  clientData = await sb.from('clients').select('*').eq('id', profile.client_id).single();
+  if (clientData?.pms_id) {
+    pmsData = await sb.from('pms_list').select('*').eq('id', clientData.pms_id).single();
+  }
+  document.getElementById('welcomeSub').textContent =
+    `Portfolio with ${pmsData?.name || 'ILIOS 72'} — ${clientData?.status || 'Active'}`;
+}
+
+async function loadHoldings() {
+  if (!clientData) return;
+  holdingsData = await sb.from('holdings').select('*').eq('client_id', clientData.id).order('mkt_value', {ascending:false});
+  if (!holdingsData) holdingsData = [];
+}
+
+async function loadFactsheets() {
+  if (!pmsData) return;
+  const all = await sb.from('factsheets').select('id,pms_name,filename,pdf_url,received_at,analysed').eq('pms_id', pmsData.id).order('received_at', {ascending:false}).limit(10);
+  factsheets = all || [];
+}
+
+// ── RENDER ────────────────────────────────────
+function fPct(v) { return v!=null ? (v>=0?'+':'')+Number(v).toFixed(2)+'%' : '—'; }
+function fMoney(v) { return v ? '₹'+Number(v).toLocaleString('en-IN') : '—'; }
+
+function renderAll() {
+  renderMetrics();
+  renderHoldings();
+  renderPerformance();
+  renderFactsheets();
+}
+
+function renderMetrics() {
+  const totalValue = holdingsData.reduce((s,h) => s + (h.mkt_value||0), 0);
+  const totalCost  = holdingsData.reduce((s,h) => s + ((h.avg_cost||0)*(h.qty||0)), 0);
+  const totalPnl   = totalValue - totalCost;
+  const pnlPct     = totalCost > 0 ? (totalPnl/totalCost*100) : 0;
+
+  const metrics = [
+    {lbl:'Invested Amount', val: fMoney(clientData?.amount), sub:'Total invested', color:'var(--orange)'},
+    {lbl:'Portfolio Value',  val: fMoney(totalValue||clientData?.amount), sub:'Current market value', color:'var(--text)'},
+    {lbl:'Total P&L',        val: fMoney(totalPnl), sub: fPct(pnlPct)+' overall', color: totalPnl>=0?'var(--green)':'var(--red)'},
+    {lbl:'PMS Strategy',     val: pmsData?.strategy||'—', sub: pmsData?.name||'—', color:'var(--blue)', small:true},
+  ];
+
+  document.getElementById('metricsGrid').innerHTML = metrics.map(m =>
+    `<div class="metric">
+      <div class="lbl">${m.lbl}</div>
+      <div class="val" style="color:${m.color};${m.small?'font-size:13px;font-weight:600':''}">${m.val}</div>
+      <div class="sub">${m.sub}</div>
+    </div>`
+  ).join('');
+}
+
+function renderHoldings() {
+  const tbody = document.getElementById('holdingsTbody');
+  if (!holdingsData.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No holdings uploaded yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = holdingsData.map(h => {
+    const pnl = ((h.cmp||h.avg_cost||0) - (h.avg_cost||0)) * (h.qty||0);
+    const pnlPct = h.avg_cost > 0 ? ((h.cmp||h.avg_cost) - h.avg_cost) / h.avg_cost * 100 : 0;
+    return `<tr>
+      <td style="font-weight:600">${h.stock}</td>
+      <td style="color:var(--dim)">${h.sector||'—'}</td>
+      <td class="num">${h.qty||'—'}</td>
+      <td class="num">${fMoney(h.avg_cost)}</td>
+      <td class="num">${h.cmp ? fMoney(h.cmp) : '—'}</td>
+      <td class="num" style="font-weight:600">${fMoney(h.mkt_value)}</td>
+      <td class="num">${h.weight ? h.weight.toFixed(2)+'%' : '—'}</td>
+      <td class="num ${pnl>=0?'tg':'tr'}">${pnl ? fMoney(Math.abs(pnl)) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPerformance() {
+  const p = pmsData;
+  if (!p) {
+    document.getElementById('returnsTable').innerHTML = '<div style="color:var(--muted)">Performance data not available yet.</div>';
+    return;
+  }
+  const rows = [
+    ['1 Month', p.r1m], ['3 Month', p.r3m], ['6 Month', p.r6m],
+    ['1 Year', p.r1y], ['3 Year (CAGR)', p.r3y], ['5 Year (CAGR)', p.r5y],
+    ['Since Inception', p.rsi]
+  ].filter(([,v]) => v != null);
+
+  document.getElementById('returnsTable').innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>Period</th><th class="num">Return</th></tr></thead>
+      <tbody>${rows.map(([period,val]) =>
+        `<tr><td>${period}</td><td class="num ${val>=0?'tg':'tr'}">${fPct(val)}</td></tr>`
+      ).join('')}</tbody>
+    </table>`;
+
+  document.getElementById('pmsDetails').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:12px">
+      ${[
+        ['PMS', p.name], ['Strategy', p.strategy],
+        ['Benchmark', p.bench], ['AUM', p.aum ? '?'+Number(p.aum).toLocaleString('en-IN')+' Cr' : '—']
+      ].map(([k,v]) => `<div><span style="color:var(--muted)">${k}:</span> <span style="color:var(--text);font-weight:500">${v||'—'}</span></div>`).join('')}
+    </div>`;
+}
+
+function renderFactsheets() {
+  const el = document.getElementById('factsheetList');
+  if (!factsheets.length) return;
+  el.innerHTML = factsheets.map(f => {
+    const dt = new Date(f.received_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    return `<div class="fs-item">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="fs-item-name">${f.pms_name} Factsheet</div>
+          <div class="fs-item-meta">${f.filename} &nbsp;|&nbsp; ${dt}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${f.analysed ? '<span class="badge bg">Analysed</span>' : '<span class="badge bo">New</span>'}
+          ${f.pdf_url ? `<a href="${f.pdf_url}" target="_blank" style="color:var(--orange);font-size:11px;text-decoration:none">View PDF ?</a>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── TABS ──────────────────────────────────────
+function cTab(n) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===n));
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i===n));
+}
+
+// ── LOGOUT ────────────────────────────────────
+async function doLogout() {
+  await sb.signOut();
+  window.location.href = 'index.html';
+}
+</script>
+</body>
+</html>
