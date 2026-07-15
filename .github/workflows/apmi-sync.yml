@@ -1,1 +1,31 @@
+name: APMI Sync
 
+# Runs automatically every day, and can also be triggered manually from the
+# "Actions" tab on GitHub (useful for testing without waiting for the schedule).
+on:
+  schedule:
+    - cron: "30 3 * * *"   # 03:30 UTC daily = 09:00 IST daily
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install playwright requests
+          playwright install --with-deps chromium
+
+      - name: Run APMI sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python apmi_sync.py
