@@ -1,0 +1,30 @@
+name: PMS Description Sync
+
+# Runs on the 1st and 15th of every month, and can also be triggered
+# manually from the Actions tab for testing.
+on:
+  schedule:
+    - cron: "0 4 1,15 * *"   # 04:00 UTC on the 1st and 15th
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run PMS description sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: python pms_description_sync.py
