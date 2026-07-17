@@ -1,0 +1,14 @@
+{
+  "name": "ILIOS 72 — Alternative Capital",
+  "short_name": "ILIOS 72",
+  "description": "ILIOS 72 Alternative Capital — Portfolio Management Dashboard",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0D0D0D",
+  "theme_color": "#0D0D0D",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

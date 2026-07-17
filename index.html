@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>ILIOS 72 — Alternative Capital</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="theme-color" content="#0D0D0D">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg:#0D0D0D; --card:#161616; --border:#2A2A2A;
+  --text:#F0F0F0; --dim:#A0A0A0; --muted:#666;
+  --orange:#E8731A; --orange2:#FF8C38; --orangeBg:rgba(232,115,26,0.08);
+  --green:#22C55E; --red:#EF4444; --blue:#3B82F6;
+  --font:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+body { font-family:var(--font); background:var(--bg); color:var(--text);
+  min-height:100vh; display:flex; align-items:center; justify-content:center; }
+
+.login-wrap { width:100%; max-width:420px; padding:24px; }
+
+.logo { text-align:center; margin-bottom:40px; }
+.logo-name { font-size:28px; font-weight:800; letter-spacing:3px; color:var(--text); }
+.logo-sub  { font-size:11px; color:var(--muted); letter-spacing:.15em; margin-top:4px; }
+.logo-bar  { width:40px; height:3px; background:var(--orange); margin:12px auto 0; border-radius:2px; }
+
+.card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:32px; }
+.card-title { font-size:15px; font-weight:700; margin-bottom:6px; }
+.card-sub   { font-size:12px; color:var(--muted); margin-bottom:28px; }
+
+.field { margin-bottom:16px; }
+.field label { display:block; font-size:11px; font-weight:600; color:var(--dim);
+  text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; }
+.field input { width:100%; padding:11px 14px; background:#1E1E1E; border:1px solid var(--border);
+  border-radius:8px; color:var(--text); font-size:13px; font-family:var(--font); outline:none;
+  transition:border-color .2s; }
+.field input:focus { border-color:var(--orange); }
+
+.btn-primary { width:100%; padding:13px; background:var(--orange); color:#fff; border:none;
+  border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; font-family:var(--font);
+  transition:background .2s; margin-top:4px; }
+.btn-primary:hover { background:var(--orange2); }
+.btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+
+.divider { display:flex; align-items:center; gap:12px; margin:20px 0;
+  font-size:11px; color:var(--muted); }
+.divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--border); }
+
+.btn-secondary { width:100%; padding:11px; background:transparent; color:var(--dim);
+  border:1px solid var(--border); border-radius:8px; font-size:13px; font-weight:500;
+  cursor:pointer; font-family:var(--font); transition:all .2s; }
+.btn-secondary:hover { border-color:var(--orange); color:var(--orange); }
+
+.error-msg { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3);
+  border-radius:8px; padding:10px 14px; font-size:12px; color:var(--red);
+  margin-bottom:16px; display:none; }
+.error-msg.show { display:block; }
+
+.success-msg { background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3);
+  border-radius:8px; padding:10px 14px; font-size:12px; color:var(--green);
+  margin-bottom:16px; display:none; }
+.success-msg.show { display:block; }
+
+.footer-note { text-align:center; margin-top:24px; font-size:11px; color:var(--muted); }
+.footer-note a { color:var(--orange); text-decoration:none; cursor:pointer; }
+
+/* Sign up / forgot forms */
+#signupForm, #forgotForm { display:none; }
+
+.role-badge { display:inline-block; padding:3px 10px; border-radius:20px;
+  font-size:10px; font-weight:700; font-family:var(--mono); }
+.role-company { background:var(--orangeBg); color:var(--orange); }
+.role-client  { background:rgba(59,130,246,0.1); color:var(--blue); }
+
+.loading-spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,0.3);
+  border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; margin-right:8px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="logo">
+    <div class="logo-name">ILIOS 72</div>
+    <div class="logo-sub">Alternative Capital</div>
+    <div class="logo-bar"></div>
+  </div>
+
+  <!-- LOGIN FORM -->
+  <div class="card" id="loginCard">
+    <div class="card-title">Welcome back</div>
+    <div class="card-sub">Sign in to your account</div>
+
+    <div class="error-msg" id="loginError"></div>
+    <div class="success-msg" id="loginSuccess"></div>
+
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="you@ilios72altcap.co.in" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="Your password" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()">Sign In</button>
+
+    <div class="divider">or</div>
+    <button class="btn-secondary" onclick="showSignup()">Create account</button>
+
+    <div class="footer-note" style="margin-top:16px">
+      <a onclick="showForgot()">Forgot password?</a>
+    </div>
+  </div>
+
+  <!-- SIGNUP FORM -->
+  <div class="card" id="signupCard" style="display:none">
+    <div class="card-title">Create account</div>
+    <div class="card-sub">
+      Use your <span class="role-badge role-company">@ilios72altcap.co.in</span> email for company access,
+      or your personal email for client access.
+    </div>
+
+    <div class="error-msg" id="signupError"></div>
+    <div class="success-msg" id="signupSuccess"></div>
+
+    <div class="field">
+      <label>Full Name</label>
+      <input type="text" id="signupName" placeholder="Your full name">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="signupEmail" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="signupPassword" placeholder="Min 6 characters" autocomplete="new-password">
+    </div>
+    <button class="btn-primary" id="signupBtn" onclick="doSignup()">Create Account</button>
+    <div class="divider">or</div>
+    <button class="btn-secondary" onclick="showLogin()">Back to sign in</button>
+  </div>
+
+  <!-- FORGOT PASSWORD FORM -->
+  <div class="card" id="forgotCard" style="display:none">
+    <div class="card-title">Reset your password</div>
+    <div class="card-sub">Enter your account email and we'll send you a reset link.</div>
+
+    <div class="error-msg" id="forgotError"></div>
+    <div class="success-msg" id="forgotSuccess"></div>
+
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="forgotEmail" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <button class="btn-primary" id="forgotBtn" onclick="doForgot()">Send Reset Link</button>
+    <div class="divider">or</div>
+    <button class="btn-secondary" onclick="showLogin()">Back to sign in</button>
+  </div>
+
+  <div class="footer-note">
+    ILIOS 72 Alternative Capital &copy; 2025
+  </div>
+</div>
+
+<script src="supabase.js"></script>
+<script>
+// Check if already logged in
+(async function() {
+  const restored = await sb.restoreSession();
+  if (restored) redirect();
+})();
+
+function redirect() {
+  if (sb.isCompany()) {
+    window.location.href = 'ILIOS72_Dashboard_MASTER.html';
+  } else {
+    window.location.href = 'client.html';
+  }
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.classList.add('show');
+}
+function clearMsgs(prefix) {
+  document.getElementById(prefix+'Error').classList.remove('show');
+  document.getElementById(prefix+'Success').classList.remove('show');
+}
+function setLoading(btnId, loading, labelWhenDone) {
+  const btn = document.getElementById(btnId);
+  if (loading) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner"></span>Please wait...';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = labelWhenDone;
+  }
+}
+
+async function doLogin() {
+  clearMsgs('login');
+  const email    = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) { showError('loginError','Please enter email and password'); return; }
+  setLoading('loginBtn', true);
+  try {
+    await sb.signIn(email, password);
+    redirect();
+  } catch(e) {
+    setLoading('loginBtn', false, 'Sign In');
+    showError('loginError', e.message === 'Invalid login credentials'
+      ? 'Incorrect email or password. Please try again.'
+      : e.message);
+  }
+}
+
+async function doSignup() {
+  clearMsgs('signup');
+  const name     = document.getElementById('signupName').value.trim();
+  const email    = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPassword').value;
+  if (!name || !email || !password) { showError('signupError','Please fill in all fields'); return; }
+  if (password.length < 6) { showError('signupError','Password must be at least 6 characters'); return; }
+  setLoading('signupBtn', true);
+  try {
+    await sb.signUp(email, password, name);
+    document.getElementById('signupSuccess').textContent =
+      'Account created! Check your email to confirm, then sign in.';
+    document.getElementById('signupSuccess').classList.add('show');
+    setLoading('signupBtn', false, 'Create Account');
+    setTimeout(showLogin, 3000);
+  } catch(e) {
+    setLoading('signupBtn', false, 'Create Account');
+    showError('signupError', e.message);
+  }
+}
+
+// ── FORGOT PASSWORD ───────────────────────
+// Builds a redirect URL that points at reset-password.html on this
+// same site/path, whether or not the current URL includes index.html.
+function resetRedirectUrl() {
+  const href = window.location.href.split('#')[0].split('?')[0];
+  return href.replace(/index\.html$/, '') + 'reset-password.html';
+}
+
+async function doForgot() {
+  clearMsgs('forgot');
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) { showError('forgotError', 'Please enter your email address'); return; }
+  setLoading('forgotBtn', true);
+  try {
+    await sb.resetPasswordForEmail(email, resetRedirectUrl());
+    setLoading('forgotBtn', false, 'Send Reset Link');
+    document.getElementById('forgotSuccess').textContent =
+      'If an account exists for that email, a reset link has been sent. Check your inbox (and spam folder).';
+    document.getElementById('forgotSuccess').classList.add('show');
+  } catch(e) {
+    setLoading('forgotBtn', false, 'Send Reset Link');
+    showError('forgotError', e.message);
+  }
+}
+
+function showSignup() {
+  document.getElementById('loginCard').style.display  = 'none';
+  document.getElementById('forgotCard').style.display = 'none';
+  document.getElementById('signupCard').style.display = 'block';
+}
+function showForgot() {
+  clearMsgs('forgot');
+  document.getElementById('loginCard').style.display  = 'none';
+  document.getElementById('signupCard').style.display = 'none';
+  document.getElementById('forgotCard').style.display = 'block';
+}
+function showLogin() {
+  document.getElementById('signupCard').style.display = 'none';
+  document.getElementById('forgotCard').style.display = 'none';
+  document.getElementById('loginCard').style.display  = 'block';
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (document.getElementById('loginCard').style.display !== 'none') doLogin();
+  else if (document.getElementById('signupCard').style.display !== 'none') doSignup();
+  else if (document.getElementById('forgotCard').style.display !== 'none') doForgot();
+});
+</script>
+</body>
+</html>
