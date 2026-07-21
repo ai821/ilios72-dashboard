@@ -1,0 +1,24 @@
+name: Test Yahoo Finance Lookup (temporary)
+
+# Manual trigger only — this is just a quick test, not meant to run on a
+# schedule. Delete this file once we know the answer either way.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run test lookup
+        run: python test_yahoo_lookup.py
