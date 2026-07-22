@@ -108,6 +108,12 @@ function fromSnakeRowForTable(table,o){
   return fromSnakeRow(remapped);
 }
 
+function nullifyEmptyStrings(o){
+  const out={};
+  Object.keys(o).forEach(k=>{ out[k]=(o[k]==='')?null:o[k]; });
+  return out;
+}
+
 async function pushArrayToSupabase(table,rows){
   if(typeof sb==='undefined')return;              // offline / not logged in yet — local cache still works
   try{
@@ -115,7 +121,7 @@ async function pushArrayToSupabase(table,rows){
     const removed=[..._lastSyncedIds[table]].filter(id=>!idSet.has(id));
     if(removed.length) await sb.from(table).delete().in('id',removed);
     if(rows.length){
-      const payload=rows.map(r=>({...toSnakeRowForTable(table,r),updated_at:new Date().toISOString()}));
+      const payload=rows.map(r=>({...nullifyEmptyStrings(toSnakeRowForTable(table,r)),updated_at:new Date().toISOString()}));
       await sb.from(table).upsert(payload);
     }
     _lastSyncedIds[table]=idSet;
