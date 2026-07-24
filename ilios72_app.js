@@ -101,6 +101,25 @@ function applyRename(obj,map){
   return out;
 }
 function toSnakeRowForTable(table,o){ return toSnakeRow(applyRename(o,FIELD_RENAME_TO_DB[table])); }
+
+// PostgREST requires every row in one bulk insert/upsert to have the exact
+// same set of keys. Local JS objects can drift over time (older clients
+// created before a field like `pan` existed, edits that skip a field,
+// etc), so instead of trusting each object's own keys, every row is
+// normalized to this fixed field list first — missing fields become null.
+const TABLE_FIELDS={
+  clients:['id','name','pan','pmsId','risk','amount','date','notes','createdAt'],
+  holdings:['id','clientId','pmsId','stock','sector','mktValue','weight','qty','avgCost','cmp','uploadId','addedAt'],
+  transactions:['id','uploadId','clientId','pmsId','stock','date','settlementDate','type','exchange','qty','price','brokerage','stt','amount','notes','addedAt'],
+  uploads:['id','type','client','clientId','pms','pmsId','count','importedIds','date'],
+};
+function normalizeRow(table,o){
+  const fields=TABLE_FIELDS[table];
+  if(!fields)return o;
+  const out={};
+  fields.forEach(f=>{ out[f]=(f in o)?o[f]:null; });
+  return out;
+}
 function fromSnakeRowForTable(table,o){
   const rev=FIELD_RENAME_FROM_DB[table]||{};
   const remapped={...o};
@@ -121,7 +140,7 @@ async function pushArrayToSupabase(table,rows){
     const removed=[..._lastSyncedIds[table]].filter(id=>!idSet.has(id));
     if(removed.length) await sb.from(table).delete().in('id',removed);
     if(rows.length){
-      const payload=rows.map(r=>({...nullifyEmptyStrings(toSnakeRowForTable(table,r)),updated_at:new Date().toISOString()}));
+      const payload=rows.map(r=>({...nullifyEmptyStrings(toSnakeRowForTable(table,normalizeRow(table,r))),updated_at:new Date().toISOString()}));
       await sb.from(table).upsert(payload);
     }
     _lastSyncedIds[table]=idSet;
