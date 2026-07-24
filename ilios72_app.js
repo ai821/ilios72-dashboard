@@ -108,7 +108,7 @@ function toSnakeRowForTable(table,o){ return toSnakeRow(applyRename(o,FIELD_RENA
 // etc), so instead of trusting each object's own keys, every row is
 // normalized to this fixed field list first — missing fields become null.
 const TABLE_FIELDS={
-  clients:['id','name','pan','pmsId','risk','amount','date','notes','createdAt'],
+  clients:['id','name','risk','amount','date','notes','createdAt'],
   holdings:['id','clientId','pmsId','stock','sector','mktValue','weight','qty','avgCost','cmp','uploadId','addedAt'],
   transactions:['id','uploadId','clientId','pmsId','stock','date','settlementDate','type','exchange','qty','price','brokerage','stt','amount','notes','addedAt'],
   uploads:['id','type','client','clientId','pms','pmsId','count','importedIds','date'],
@@ -151,7 +151,11 @@ async function pushArrayToSupabase(table,rows){
 }
 
 function sv(k,d){
-  localStorage.setItem(k,JSON.stringify(d));
+  try{
+    localStorage.setItem(k,JSON.stringify(d));
+  }catch(e){
+    console.warn(`localStorage.setItem failed for ${k} (likely storage quota) — will still try to save to the cloud:`,e);
+  }
   if(_suppressSupaPush)return;
   const table=SUPA_TABLE[k];
   if(table)pushArrayToSupabase(table,d);
@@ -341,6 +345,18 @@ function closeMo(id){document.getElementById(id).classList.remove('open')}
 function getClientName(id){const c=clients.find(x=>x.id===id);return c?c.name:(id||'—')}
 function getPmsName(id){const p=pmsList.find(x=>x.id===id);return p?p.strategy:(id||'—')}
 
+// A client's money can be spread across several PMS providers at once, so
+// there's no single "primary PMS" per client anymore — this derives the
+// actual list from their real holdings instead.
+function getClientPmsIds(clientId){
+  return [...new Set(holdings.filter(h=>h.clientId===clientId).map(h=>h.pmsId).filter(Boolean))];
+}
+function getClientPmsNamesDisplay(clientId){
+  const ids=getClientPmsIds(clientId);
+  if(!ids.length)return '—';
+  return ids.map(getPmsName).join(', ');
+}
+
 // == TABS ==
 // IMPORTANT: scoped to #tabsBar only. The `.tab` CSS class is reused on the
 // Factsheet Intelligence sub-tabs (fsiTab0/1/2) and the Fund Manager modal's
@@ -370,7 +386,7 @@ setInterval(()=>{
 function populateDropdowns(){
   const pmsOpts=pmsList.map(p=>`<option value="${p.id}">${p.name} — ${p.strategy}</option>`).join('');
   const clientOpts=[...clients].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  ['cl-pms','ecl-pms','upHPms','upTPms'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Select PMS...</option>'+pmsOpts});
+  ['upHPms','upTPms'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Select PMS...</option>'+pmsOpts});
   ['upHClient','upTClient'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Select Client...</option>'+clientOpts});
   ['holdClientFilter','txnClientFilter'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="all">All Clients</option>'+clientOpts});
   const holdPmsEl=document.getElementById('holdPmsFilter');
@@ -385,9 +401,9 @@ function populateDropdowns(){
 function addClient(){
   const name=document.getElementById('cl-name').value.trim();
   if(!name){toast('Enter client name','r');return}
-  clients.push({id:uid(),name,pan:document.getElementById('cl-pan').value.trim(),pmsId:document.getElementById('cl-pms').value,risk:document.getElementById('cl-risk').value,amount:parseFloat(document.getElementById('cl-amt').value)||0,date:document.getElementById('cl-date').value,notes:document.getElementById('cl-notes').value.trim(),createdAt:new Date().toISOString()});
+  clients.push({id:uid(),name,risk:document.getElementById('cl-risk').value,amount:parseFloat(document.getElementById('cl-amt').value)||0,date:document.getElementById('cl-date').value,notes:document.getElementById('cl-notes').value.trim(),createdAt:new Date().toISOString()});
   sv(K.C,clients);closeMo('addClientMo');renderAll();toast(name+' added ✓');
-  ['cl-name','cl-pan','cl-amt','cl-date','cl-notes'].forEach(id=>document.getElementById(id).value='');
+  ['cl-name','cl-amt','cl-date','cl-notes'].forEach(id=>document.getElementById(id).value='');
 }
 
 function openEditClient(id){
@@ -395,12 +411,10 @@ function openEditClient(id){
   populateDropdowns();
   document.getElementById('ecl-id').value=c.id;
   document.getElementById('ecl-name').value=c.name||'';
-  document.getElementById('ecl-pan').value=c.pan||'';
   document.getElementById('ecl-risk').value=c.risk||'Aggressive';
   document.getElementById('ecl-amt').value=c.amount||'';
   document.getElementById('ecl-date').value=c.date||'';
   document.getElementById('ecl-notes').value=c.notes||'';
-  const pEl=document.getElementById('ecl-pms');if(pEl&&c.pmsId)pEl.value=c.pmsId;
   openMo('editClientMo');
 }
 
@@ -409,7 +423,7 @@ function updateClient(){
   const name=document.getElementById('ecl-name').value.trim();
   if(!name){toast('Name required','r');return}
   const idx=clients.findIndex(c=>c.id===id);if(idx===-1)return;
-  clients[idx]={...clients[idx],name,pan:document.getElementById('ecl-pan').value.trim(),pmsId:document.getElementById('ecl-pms').value,risk:document.getElementById('ecl-risk').value,amount:parseFloat(document.getElementById('ecl-amt').value)||0,date:document.getElementById('ecl-date').value,notes:document.getElementById('ecl-notes').value.trim()};
+  clients[idx]={...clients[idx],name,risk:document.getElementById('ecl-risk').value,amount:parseFloat(document.getElementById('ecl-amt').value)||0,date:document.getElementById('ecl-date').value,notes:document.getElementById('ecl-notes').value.trim()};
   sv(K.C,clients);closeMo('editClientMo');renderAll();toast(name+' updated ✓');
 }
 
@@ -622,7 +636,7 @@ function renderOverview(){
   let hAll=pmsFilter==='all'?holdings:holdings.filter(x=>x.pmsId===pmsFilter);
   const h=hAll.filter(x=>!isCorruptedHolding(x)); // clean holdings only, for every calculation below
   const corruptedCount=hAll.length-h.length;
-  let c=pmsFilter==='all'?clients:clients.filter(x=>x.pmsId===pmsFilter);
+  let c=pmsFilter==='all'?clients:clients.filter(x=>getClientPmsIds(x.id).includes(pmsFilter));
 
   // Use live prices for current value
   const totalHoldValue=h.reduce((s,x)=>{
@@ -764,10 +778,10 @@ function renderClients(){
     const daysSinceUp=lastUp?Math.floor((Date.now()-new Date(lastUp.date).getTime())/86400000):null;
     const staleColor=daysSinceUp===null?'var(--blue)':daysSinceUp>30?'var(--red)':daysSinceUp>15?'var(--orange)':'var(--green)';
     const staleText=daysSinceUp===null?'No factsheet':daysSinceUp===0?'Today':daysSinceUp+'d ago';
-    const pmsName=getPmsName(c.pmsId);
+    const pmsName=getClientPmsNamesDisplay(c.id);
     return `<div class="card" style="border-left:3px solid var(--orange)">
       <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
-        <div><div style="font-size:15px;font-weight:700">${c.name}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${c.pan||'—'} · ${c.risk||'—'}</div></div>
+        <div><div style="font-size:15px;font-weight:700">${c.name}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${c.risk||'—'}</div></div>
         <div style="display:flex;gap:6px"><button class="btn btn-s btn-sm" onclick="openEditClient('${c.id}')">✎</button><button class="btn btn-d btn-sm" onclick="deleteClient('${c.id}')">✕</button></div>
       </div>
       ${c.amount>0?`<div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--card2);border-radius:var(--r);margin-bottom:8px"><span style="font-size:10px;color:var(--muted);font-weight:600">Initial Investment</span><span style="font-family:var(--mono);font-size:12px;font-weight:600">${fCr(c.amount)}</span></div>`:''}
@@ -1248,7 +1262,7 @@ function renderSectorChart(filteredH){
 function renderClientSectorAccordion(pmsFilter){
   const el=document.getElementById('clientSectorAccordion');
   if(!el) return;
-  let clientList = pmsFilter==='all' ? clients : clients.filter(c=>c.pmsId===pmsFilter);
+  let clientList = pmsFilter==='all' ? clients : clients.filter(c=>getClientPmsIds(c.id).includes(pmsFilter));
 
   if(!clientList.length){
     el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:12px">No clients to show yet.</div>';
@@ -1292,7 +1306,7 @@ function renderClientSectorAccordion(pmsFilter){
     return `<div class="card-sm" style="border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden">
       <div style="padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center"
            onclick="const b=this.nextElementSibling;const open=b.style.display==='block';b.style.display=open?'none':'block';this.querySelector('.acc-arrow').textContent=open?'▸':'▾'">
-        <div style="font-weight:600;font-size:12px">${c.name} <span style="color:var(--muted);font-weight:400;font-size:10px">— ${getPmsName(c.pmsId)}</span></div>
+        <div style="font-weight:600;font-size:12px">${c.name} <span style="color:var(--muted);font-weight:400;font-size:10px">— ${pmsIdsForClient.map(getPmsName).join(', ')||'—'}</span></div>
         <div style="display:flex;align-items:center;gap:10px">
           <span style="font-family:var(--mono);font-size:11px;color:var(--dim)">${fCr(total)}</span>
           <span class="acc-arrow" style="color:var(--orange)">▸</span>
@@ -2876,8 +2890,23 @@ function renderPerformance(){
   const now=new Date();
   let snaps=[];try{snaps=JSON.parse(localStorage.getItem('i72_snaps')||'[]')}catch{}
 
-  // Benchmark from PMS record linked to client
-  const benchPms=pf!=='all'?pmsList.find(p=>p.id===pf):(client?.pmsId?pmsList.find(p=>p.id===client.pmsId):pmsList[0]);
+  // Benchmark: an explicit PMS filter wins; otherwise pick the client's
+  // largest holding by value across whichever PMS providers they're
+  // actually invested in (a client can span several at once).
+  let benchPms;
+  if(pf!=='all'){
+    benchPms=pmsList.find(p=>p.id===pf);
+  } else if(client){
+    const clientPmsIds=getClientPmsIds(client.id);
+    let topPmsId=null,topVal=-1;
+    clientPmsIds.forEach(pid=>{
+      const val=holdings.filter(h=>h.clientId===client.id&&h.pmsId===pid).reduce((s,h)=>s+(h.mktValue||0),0);
+      if(val>topVal){topVal=val;topPmsId=pid;}
+    });
+    benchPms=topPmsId?pmsList.find(p=>p.id===topPmsId):pmsList[0];
+  } else {
+    benchPms=pmsList[0];
+  }
 
   function snapReturn(daysAgo){
     if(!snaps.length||!curValue)return null;
@@ -3852,8 +3881,13 @@ function populateFsiPmsSelect(){
 
 async function runFactsheetAI(entry, aiDiv, aiBadge, structDiv, holdingsElId, clientElId, entryId){
   const pms = pmsList.find(p=>p.id===entry.pmsId) || {};
-  const clientsInPms = clients.filter(c=>c.pmsId===entry.pmsId);
+  // Which clients are actually invested in THIS fund — derived from real
+  // holdings (a client can be invested across several PMS providers at
+  // once), not from a single "primary PMS" field on the client record,
+  // which would silently miss anyone invested via a different provider.
   const holdingsInPms = holdings.filter(h=>h.pmsId===entry.pmsId);
+  const clientIdsInPms = new Set(holdingsInPms.map(h=>h.clientId));
+  const clientsInPms = clients.filter(c=>clientIdsInPms.has(c.id));
 
   // Build client context
   const clientCtx = clientsInPms.map(c=>{
@@ -4253,7 +4287,7 @@ function renderHoldingsImpactFromData(data, elId){
 function renderClientImpact(pmsId, elId, structuredData){
   const el = document.getElementById(elId);
   if(!el) return;
-  const clientsInPms = clients.filter(c=>c.pmsId===pmsId);
+  const clientsInPms = clients.filter(c=>getClientPmsIds(c.id).includes(pmsId));
   if(!clientsInPms.length){ el.innerHTML='<div style="color:var(--muted)">No clients linked to this PMS. Add clients in the Clients tab first.</div>'; return; }
   if(structuredData){ renderClientImpactFromData(structuredData, elId); return; }
   el.innerHTML='<div style="color:var(--muted)">Run AI analysis to see client-specific impact.</div>';
