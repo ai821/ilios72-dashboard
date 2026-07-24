@@ -387,7 +387,6 @@ function populateDropdowns(){
   const pmsOpts=pmsList.map(p=>`<option value="${p.id}">${p.name} — ${p.strategy}</option>`).join('');
   const clientOpts=[...clients].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   ['upHPms','upTPms'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Select PMS...</option>'+pmsOpts});
-  ['upHClient','upTClient'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Select Client...</option>'+clientOpts});
   ['holdClientFilter','txnClientFilter'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="all">All Clients</option>'+clientOpts});
   const holdPmsEl=document.getElementById('holdPmsFilter');
   if(holdPmsEl){
@@ -395,6 +394,39 @@ function populateDropdowns(){
     holdPmsEl.innerHTML='<option value="all">All PMS</option>'+pmsOpts;
     if([...holdPmsEl.options].some(o=>o.value===prevVal))holdPmsEl.value=prevVal;
   }
+}
+
+// == SEARCHABLE CLIENT DROPDOWN (Upload Center) ==
+// Backs a plain hidden input (id="<prefix>Client") that every existing
+// read of `.value` elsewhere in the app keeps working against unchanged —
+// this only adds a type-to-search UI on top, it doesn't change the
+// underlying value contract.
+function renderClientDropdownList(prefix, filterText){
+  const listEl=document.getElementById(prefix+'ClientDropdown');
+  if(!listEl) return;
+  const q=(filterText||'').trim().toLowerCase();
+  const opts=[...clients].sort((a,b)=>a.name.localeCompare(b.name)).filter(c=>!q||c.name.toLowerCase().includes(q));
+  listEl.innerHTML = opts.length
+    ? opts.map(c=>`<div class="client-search-dd-item" onmousedown="selectClientFromDropdown('${prefix}','${c.id}',${JSON.stringify(c.name)})">${c.name}</div>`).join('')
+    : '<div class="client-search-dd-empty">No matching clients</div>';
+  listEl.style.display='block';
+}
+function showClientDropdown(prefix){
+  renderClientDropdownList(prefix, document.getElementById(prefix+'ClientSearch').value);
+}
+function filterClientDropdown(prefix){
+  document.getElementById(prefix+'Client').value=''; // clear prior selection while typing a new search
+  renderClientDropdownList(prefix, document.getElementById(prefix+'ClientSearch').value);
+}
+function selectClientFromDropdown(prefix,id,name){
+  document.getElementById(prefix+'Client').value=id;
+  document.getElementById(prefix+'ClientSearch').value=name;
+  document.getElementById(prefix+'ClientDropdown').style.display='none';
+}
+function hideClientDropdownDelayed(prefix){
+  // small delay so a click on a dropdown item (onmousedown, above) fires
+  // and completes the selection before blur hides the list
+  setTimeout(()=>{ const dd=document.getElementById(prefix+'ClientDropdown'); if(dd) dd.style.display='none'; }, 150);
 }
 
 // == CLIENTS ==
@@ -4058,6 +4090,7 @@ IMPORTANT RULES:
       ${note.overallVerdict?`<div style="margin-top:14px;padding:12px 16px;background:var(--card2);border-radius:var(--r);border-left:3px solid ${bc}"><b style="color:var(--text)">Verdict:</b> ${note.overallVerdict}</div>`:''}`;
 
     aiBadge.textContent = 'Analysis Ready ✓';
+    entry.structuredData = data;
     entry.aiAnalysis = aiDiv.innerHTML;
     toast('Analysis complete ✓');
 
